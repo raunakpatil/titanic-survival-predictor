@@ -1,5 +1,7 @@
 # 🚢 Titanic Survival Predictor
 
+![Banner](docs/banner.png)
+
 > An interactive ML explainability dashboard — XGBoost + SHAP + Streamlit
 
 [![Live Demo](https://img.shields.io/badge/🚀_Live_Demo-Streamlit-ff4b4b?style=for-the-badge)](https://your-app.streamlit.app)
