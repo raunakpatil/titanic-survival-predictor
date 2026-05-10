@@ -128,6 +128,7 @@ streamlit run app.py
 
 ---
 
-## 📄 License
+<div align="center">
+Made with ❤️ by <a href="https://github.com/raunakpatil">@raunakpatil</a>
+</div>
 
-MIT
