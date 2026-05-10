@@ -78,7 +78,7 @@ titanic-survival-explorer/
 
 ---
 
-## 🚀 Running locally
+## 🚀 Run locally
 
 ```bash
 # 1. Clone
