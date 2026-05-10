@@ -98,13 +98,9 @@ streamlit run app.py
 
 ---
 
-## ☁️ Deploy to Streamlit Cloud (free, ~2 min)
+## ☁️ Live Demo
 
-1. Push this repo to GitHub
-2. Go to [share.streamlit.io](https://share.streamlit.io) → **New app**
-3. Select your repo → point to `app.py`
-4. Add `train.csv` and `test.csv` to a `data/` folder in the repo _(or use Streamlit secrets + a remote data source)_
-5. Click **Deploy** — you get a public URL immediately
+🚀 **[Try it live on Streamlit Cloud](https://titanic-survival-predictor-untighkxeujjcqbj7h79kn.streamlit.app/)**
 
 ---
 
