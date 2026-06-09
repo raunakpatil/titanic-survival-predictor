@@ -3,8 +3,31 @@ import numpy as np
 
 
 def load_data():
+    """Load Titanic data, auto-downloading from public sources if not present."""
+    import os
+    import urllib.request
+
+    os.makedirs("data", exist_ok=True)
+
+    _TRAIN_URL = "https://raw.githubusercontent.com/datasciencedojo/datasets/master/titanic.csv"
+    _TEST_URL  = "https://raw.githubusercontent.com/jbrownlee/Datasets/master/titanic.csv"
+
+    # ── train.csv ──────────────────────────────────────────────────────────────
+    if not os.path.exists("data/train.csv"):
+        # Primary source: datasciencedojo — full 891-row labelled dataset
+        urllib.request.urlretrieve(_TRAIN_URL, "data/train.csv")
+
+    # ── test.csv ───────────────────────────────────────────────────────────────
+    # We don't need ground-truth labels for test; generate a small synthetic
+    # stand-in from the training data so engineer_features() always gets two dfs.
+    if not os.path.exists("data/test.csv"):
+        _tmp = pd.read_csv("data/train.csv")
+        # Use the last 20% as a pseudo-test set (no Survived column)
+        _test = _tmp.tail(int(len(_tmp) * 0.2)).drop(columns=["Survived"], errors="ignore").copy()
+        _test.to_csv("data/test.csv", index=False)
+
     train_df = pd.read_csv("data/train.csv")
-    test_df = pd.read_csv("data/test.csv")
+    test_df  = pd.read_csv("data/test.csv")
     return train_df, test_df
 
 
