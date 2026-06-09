@@ -4,7 +4,7 @@
 
 > An interactive ML explainability dashboard — XGBoost + SHAP + Streamlit
 
-[![Live Demo](https://img.shields.io/badge/🚀_Live_Demo-Streamlit-ff4b4b?style=for-the-badge)](https://your-app.streamlit.app)
+[![Live Demo](https://img.shields.io/badge/🚀_Live_Demo-Streamlit-ff4b4b?style=for-the-badge)](https://titanic-survival-predictor-raunak.streamlit.app/)
 [![Python](https://img.shields.io/badge/Python-3.10+-blue?style=for-the-badge&logo=python)](https://python.org)
 [![XGBoost](https://img.shields.io/badge/Model-XGBoost-orange?style=for-the-badge)](https://xgboost.readthedocs.io)
 [![SHAP](https://img.shields.io/badge/Explainability-SHAP-blueviolet?style=for-the-badge)](https://shap.readthedocs.io)
@@ -82,17 +82,13 @@ titanic-survival-explorer/
 
 ```bash
 # 1. Clone
-git clone https://github.com/raunakpatil/titanic-survival-explorer.git
-cd titanic-survival-explorer
+git clone https://github.com/raunakpatil/titanic-survival-predictor.git
+cd titanic-survival-predictor
 
-# 2. Install pinned dependencies
+# 2. Install dependencies
 pip install -r requirements.txt
 
-# 3. Download Kaggle data
-#    → https://www.kaggle.com/competitions/titanic/data
-#    Place train.csv and test.csv in data/
-
-# 4. Run
+# 3. Run — data is auto-downloaded on first launch, no Kaggle account needed
 streamlit run app.py
 ```
 
@@ -100,7 +96,7 @@ streamlit run app.py
 
 ## ☁️ Live Demo
 
-🚀 **[Try it live on Streamlit Cloud](https://titanic-survival-predictor-untighkxeujjcqbj7h79kn.streamlit.app/)**
+🚀 **[Try it live on Streamlit Cloud →](https://titanic-survival-predictor-raunak.streamlit.app/)**
 
 ---
 
