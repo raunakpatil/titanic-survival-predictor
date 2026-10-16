@@ -31,6 +31,11 @@ Scrub through the night of 14–15 April 1912. The ship pitches and sinks as lif
 ### Model: how accurate, and how fair?
 ![Model](docs/screenshots/model.png)
 
+### On your phone
+The layout adapts from phones to ultra-wide screens: cards stack (with your inputs first), the tab bar scrolls, and the 3D ship resizes to fit. Scrolling over the ship scrolls the page; use the + / − buttons to zoom.
+
+<p align="center"><img src="docs/screenshots/mobile.png" alt="Phone layout" width="560"></p>
+
 <details>
 <summary>Compare and Passengers tabs</summary>
 
