@@ -22,11 +22,26 @@
     #loading { position: absolute; inset: 0; display: grid; place-items: center; color: #5c5c5c;
                font: 12px 'JetBrains Mono', monospace; }
     #help { position: absolute; right: 10px; bottom: 8px; color: #4a4a4a; font: 11px 'JetBrains Mono', monospace; }
+    #zoom { position: absolute; left: 10px; bottom: 10px; display: flex; gap: 6px; }
+    #zoom button {
+      width: 30px; height: 30px; border-radius: 50%; border: 1px solid #2c2c2c; background: rgba(22,22,22,.85);
+      color: #cfcfcf; font: 16px/1 Inter, system-ui, sans-serif; cursor: pointer; padding: 0;
+    }
+    #zoom button:hover { background: #262626; }
+    #legend { display: none; position: absolute; left: 10px; top: 8px; color: #8a8a8a; font-size: 11px; }
+    @media (max-width: 480px) {
+      #help { display: none; }
+      .tag { font-size: 11px; padding: 4px 8px; }
+      .tag small { font-size: 10px; }
+      .tag.secondary { display: none; }
+      #legend { display: block; }
+    }
   </style>
   <script type="importmap">{ "imports": { "three": "./vendor/three.module.min.js" } }</script>
 </head>
 <body>
-  <div id="stage"><div id="loading">loading ship…</div><div id="help">drag to rotate · scroll to zoom</div></div>
+  <div id="stage"><div id="loading">loading ship…</div><div id="help">drag to rotate</div><div id="legend"></div>
+    <div id="zoom"><button id="zoom-in" title="Zoom in" aria-label="Zoom in">+</button><button id="zoom-out" title="Zoom out" aria-label="Zoom out">−</button></div></div>
   <script type="module" src="./ship.js"></script>
 </body>
 </html>

@@ -249,7 +249,7 @@ with tab1:
                                                    opacity=0.85, xbins=dict(start=0, end=1, size=0.05)))
                 fig_sim.add_vline(x=prob, line_dash="dot", line_color="#ededed",
                                   annotation_text=f" you · {prob:.0%}", annotation_font_color="#ededed",
-                                  annotation_position="top right")
+                                  annotation_position="top left" if prob > 0.7 else "top right")
                 fig_sim.update_layout(barmode="overlay", margin=dict(t=30, b=10, l=10, r=10),
                                       xaxis=dict(tickformat=".0%", range=[0, 1]),
                                       yaxis=dict(title="passengers"))
