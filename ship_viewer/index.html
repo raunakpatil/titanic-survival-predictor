@@ -1,0 +1,32 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+  <style>
+    html, body { margin: 0; height: 100%; background: transparent; overflow: hidden; font-family: Inter, system-ui, sans-serif; }
+    #stage { position: relative; width: 100%; height: 100%; }
+    canvas { display: block; outline: none; cursor: grab; }
+    canvas:active { cursor: grabbing; }
+    .tag {
+      position: absolute; transform: translate(-50%, calc(-100% - 14px)); pointer-events: none; white-space: nowrap;
+      background: rgba(22,22,22,.88); border: 1px solid #2c2c2c; color: #ededed; border-radius: 10px;
+      padding: 6px 10px; font-size: 12px; line-height: 1.35; backdrop-filter: blur(4px);
+      transition: opacity .3s;
+    }
+    .tag small { display: block; color: #8a8a8a; font-size: 11px; }
+    .tag::after {
+      content: ''; position: absolute; left: 50%; bottom: -14px; width: 1px; height: 14px; background: #555;
+    }
+    #loading { position: absolute; inset: 0; display: grid; place-items: center; color: #5c5c5c;
+               font: 12px 'JetBrains Mono', monospace; }
+    #help { position: absolute; right: 10px; bottom: 8px; color: #4a4a4a; font: 11px 'JetBrains Mono', monospace; }
+  </style>
+  <script type="importmap">{ "imports": { "three": "./vendor/three.module.min.js" } }</script>
+</head>
+<body>
+  <div id="stage"><div id="loading">loading ship…</div><div id="help">drag to rotate · scroll to zoom</div></div>
+  <script type="module" src="./ship.js"></script>
+</body>
+</html>
