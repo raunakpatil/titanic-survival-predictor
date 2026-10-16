@@ -54,6 +54,18 @@ controls.minDistance = 220;
 controls.maxDistance = 1400;
 controls.maxPolarAngle = Math.PI * 0.49;
 controls.autoRotateSpeed = 0.6;
+// Scrolling the page over the ship must scroll the page, not zoom the model, and on touch
+// screens vertical swipes scroll the page while horizontal drags rotate the ship.
+controls.enableZoom = false;
+renderer.domElement.style.touchAction = 'pan-y';
+
+function zoomBy(factor) {
+  const offset = camera.position.clone().sub(controls.target);
+  const len = THREE.MathUtils.clamp(offset.length() * factor, controls.minDistance, controls.maxDistance);
+  camera.position.copy(controls.target).add(offset.setLength(len));
+}
+document.getElementById('zoom-in').addEventListener('click', () => zoomBy(0.8));
+document.getElementById('zoom-out').addEventListener('click', () => zoomBy(1.25));
 
 scene.add(new THREE.HemisphereLight(0xffffff, 0x1b2430, 2.2));
 const sun = new THREE.DirectionalLight(0xffffff, 2.0);
@@ -115,6 +127,7 @@ const glow = radialTexture('rgba(255,255,255,1)', 'rgba(255,255,255,0)');
 let markers = [];
 function setMarkers(list) {
   for (const m of markers) { ship.remove(m.group); m.tag.remove(); }
+  const legend = [];
   markers = (list || []).map((spec) => {
     const group = new THREE.Group();
     group.position.fromArray(ANCHORS[spec.at] || [0, 40, 0]);
@@ -128,18 +141,19 @@ function setMarkers(list) {
     group.add(halo, dot);
     ship.add(group);
     const tag = document.createElement('div');
-    tag.className = 'tag';
+    tag.className = spec.pulse ? 'tag' : 'tag secondary';
     tag.innerHTML = `<span style="color:${spec.color}">●</span> ${spec.title || ''}<small>${spec.sub || ''}</small>`;
     if (spec.title) stage.appendChild(tag);
+    if (spec.title && !spec.pulse) legend.push(`<span style="color:${spec.color}">●</span> ${spec.title}`);
     return { group, halo, tag, pulse: !!spec.pulse };
   });
+  document.getElementById('legend').innerHTML = legend.join('&nbsp;&nbsp;');
 }
 
 // ── Args → state ──
 const target = { pitch: 0, sink: 0 };
 function apply(a) {
   args = { ...args, ...a };
-  post('streamlit:setFrameHeight', { height: args.height });
   setMarkers(args.mode === 'berth' ? args.markers : []);
   target.pitch = THREE.MathUtils.degToRad(args.mode === 'sink' ? args.pitch : 0);
   target.sink = args.mode === 'sink' ? args.sink : 0;
@@ -168,7 +182,7 @@ new GLTFLoader().load('./titanic.glb', (gltf) => {
 });
 
 // ── Camera ──
-camera.position.set(340, 140, 360);
+camera.position.set(220, 150, 450);
 controls.target.set(0, 30, 0);
 if (query.get('cam')) {   // standalone debugging: ?cam=x,y,z
   camera.position.fromArray(query.get('cam').split(',').map(Number));
@@ -186,14 +200,22 @@ if (query.has('debug')) {  // ?debug: hide the sea, draw a 10-unit grid on the s
   scene.add(new THREE.LineSegments(g, new THREE.LineBasicMaterial({ color: 0xff00ff, depthTest: false })));
 }
 
+let frameHeight = 0;
 function resize() {
   const w = stage.clientWidth || window.innerWidth;
-  const h = args.height || window.innerHeight;
+  // On narrow screens shrink the frame so the ship isn't lost in a tall, skinny box
+  const h = Math.round(Math.min(args.height || 400, Math.max(240, w * 0.75)));
+  if (h !== frameHeight) {
+    frameHeight = h;
+    post('streamlit:setFrameHeight', { height: h });
+  }
   stage.style.height = `${h}px`;
   renderer.setSize(w, h);
   camera.aspect = w / h;
-  // keep the whole ship in frame on narrow screens
-  camera.fov = camera.userData.fov || (w / h < 1.4 ? 40 : 28);
+  // Keep the ship's full length in frame at any aspect ratio: hold the horizontal field of
+  // view roughly constant (~60°) and derive the vertical one from it.
+  const vfov = THREE.MathUtils.radToDeg(2 * Math.atan(0.57 / (w / h)));
+  camera.fov = camera.userData.fov || THREE.MathUtils.clamp(vfov, 24, 75);
   camera.updateProjectionMatrix();
 }
 window.addEventListener('resize', resize);

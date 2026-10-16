@@ -58,7 +58,7 @@ CSS = """
 html, body, .stApp, .stApp p, .stApp label, .stApp input, .stApp button, .stApp textarea {
   font-family: 'Inter', system-ui, sans-serif;
 }
-.block-container { padding: 1.25rem 1.25rem 2rem !important; max-width: 1480px; }
+.block-container { padding: 1.25rem clamp(.75rem, 2vw, 2.5rem) 2rem !important; max-width: none; }
 header[data-testid="stHeader"] { display: none; }
 [data-testid="stHorizontalBlock"] { gap: 10px; }
 .stApp [data-testid="stVerticalBlock"] { gap: 10px; }
@@ -93,6 +93,9 @@ header[data-testid="stHeader"] { display: none; }
 .stTabs .react-aria-SelectionIndicator, .stTabs [data-baseweb="tab-highlight"],
 .stTabs [data-baseweb="tab-border"] { display: none; }
 .stTabs [role="tabpanel"] { padding-top: 1.1rem; }
+/* Streamlit's overflow arrows fade from the theme colour; match the light page instead */
+.stTabs [data-testid="stTabsScrollRight"] { background-image: linear-gradient(to right, rgba(239,239,239,0), #efefef 55%) !important; color: #444 !important; }
+.stTabs [data-testid="stTabsScrollLeft"] { background-image: linear-gradient(to left, rgba(239,239,239,0), #efefef 55%) !important; color: #444 !important; }
 
 /* ── Cards ────────────────────────────────────────── */
 [class*="st-key-card_"] {
@@ -108,10 +111,10 @@ header[data-testid="stHeader"] { display: none; }
 .stApp p.tiny { color: var(--dim); font-size: .78rem; margin: .3rem 0 0; }
 
 /* Big thin numbers */
-.big { font-size: 3.6rem; font-weight: 300; letter-spacing: -.035em; line-height: 1; color: var(--text); }
+.big { font-size: clamp(2.4rem, 1.6rem + 2.2vw, 3.6rem); font-weight: 300; letter-spacing: -.035em; line-height: 1; color: var(--text); }
 .headline span { letter-spacing: 0; }
 .big small { font-size: 1rem; letter-spacing: 0; color: var(--muted); font-weight: 400; margin-left: .5rem; }
-.headline { font-size: 2.6rem; font-weight: 300; letter-spacing: -.03em; line-height: 1.1; color: var(--text); margin: .2rem 0 .35rem; }
+.headline { font-size: clamp(1.9rem, 1.3rem + 1.5vw, 2.6rem); font-weight: 300; letter-spacing: -.03em; line-height: 1.1; color: var(--text); margin: .2rem 0 .35rem; }
 
 /* Mono chips */
 .chip {
@@ -156,7 +159,7 @@ header[data-testid="stHeader"] { display: none; }
 /* Stat grid */
 .stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.4rem 1rem; margin-top: 1.1rem; }
 .stats.four { grid-template-columns: repeat(4, 1fr); }
-.stat-n { font-size: 2.3rem; font-weight: 300; letter-spacing: -.03em; line-height: 1; color: var(--text); }
+.stat-n { font-size: clamp(1.7rem, 1.3rem + 1vw, 2.3rem); font-weight: 300; letter-spacing: -.03em; line-height: 1; color: var(--text); }
 .stat-l { font-size: .8rem; color: var(--muted); margin-top: .35rem; line-height: 1.35; }
 
 /* Bulleted findings */
@@ -195,10 +198,64 @@ header[data-testid="stHeader"] { display: none; }
 .foot { text-align: center; color: #888; font-size: .78rem; padding: .75rem 0 0; }
 .foot a { color: #444; }
 
+/* ── Responsive layout ───────────────────────────────
+   "Layout rows" are the page-level st.columns whose columns hold cards; columns
+   used inside a card (e.g. two sliders side by side) are left alone. */
+[data-testid="stHorizontalBlock"]:has(> [data-testid="stColumn"] > [data-testid="stVerticalBlock"] > [data-testid="stLayoutWrapper"] > [class*="st-key-card_"]) {
+  align-items: stretch;
+}
+.stats > div { min-width: 0; }
+.row-main { overflow-wrap: anywhere; }
+
+/* Tablets and small laptops: tabs drop below the brand row, card rows stack */
+@media (max-width: 1100px) {
+  .stTabs [role="tablist"] { margin-top: .6rem; }
+  [data-testid="stHorizontalBlock"]:has(> [data-testid="stColumn"] > [data-testid="stVerticalBlock"] > [data-testid="stLayoutWrapper"] > [class*="st-key-card_"]) {
+    flex-wrap: wrap;
+  }
+  [data-testid="stHorizontalBlock"]:has(> [data-testid="stColumn"] > [data-testid="stVerticalBlock"] > [data-testid="stLayoutWrapper"] > [class*="st-key-card_"]) > [data-testid="stColumn"] {
+    flex: 1 1 100% !important; width: 100% !important; min-width: 100% !important;
+  }
+  /* once stacked, put the passenger inputs above the prediction they drive */
+  [data-testid="stColumn"]:has(.st-key-card_setup) { order: -1; }
+}
+
+/* Inside wide cards: stack the 3D ship above its controls, the chart above its stats */
 @media (max-width: 900px) {
+  .st-key-card_sinking [data-testid="stHorizontalBlock"], .st-key-card_sim [data-testid="stHorizontalBlock"] { flex-wrap: wrap; }
+  .st-key-card_sinking [data-testid="stHorizontalBlock"] > [data-testid="stColumn"],
+  .st-key-card_sim [data-testid="stHorizontalBlock"] > [data-testid="stColumn"] {
+    flex: 1 1 100% !important; width: 100% !important; min-width: 100% !important;
+  }
   .stats.four { grid-template-columns: repeat(2, 1fr); }
-  .stTabs [role="tablist"] { margin-top: .5rem; flex-wrap: wrap; }
+}
+
+/* Phones */
+@media (max-width: 640px) {
+  .block-container { padding: .75rem .6rem 1.5rem !important; }
+  .topbar { padding: 0 .25rem; }
   .top-pills { display: none; }
+  .stTabs [role="tablist"] {
+    width: auto; max-width: 100%; margin: .6rem 0 0; justify-content: flex-start;
+    overflow-x: auto; flex-wrap: nowrap; scrollbar-width: none;
+  }
+  .stTabs [role="tablist"]::-webkit-scrollbar { display: none; }
+  .stTabs [role="tab"] { padding: .4rem .8rem; flex: none; }
+  .stTabs [role="tab"] p { font-size: .82rem; }
+  [class*="st-key-card_"] { padding: 18px 16px; border-radius: 16px; }
+  .stats, .stats[style] { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 1.1rem .8rem; }
+  .row { gap: .65rem; padding: .6rem .15rem; }
+  .row-v { font-size: .74rem; }
+  .row-v { display: flex; flex-direction: column; align-items: flex-end; gap: .3rem; }
+  .lbl .lbl-r { display: none; }
+  .cm { font-size: .7rem; }
+  .cm .cell { padding: .7rem; }
+  .cm .cell b { font-size: 1.35rem; }
+  .pbar-meta { flex-direction: column; gap: .2rem; }
+  .dots li { display: block; position: relative; padding-left: 1.1rem; }
+  .dots li::before { position: absolute; left: 0; top: .95rem; }
+  .dots li span { display: block; margin-top: .1rem; }
+}
 }
 </style>
 """
