@@ -2,11 +2,13 @@ import numpy as np
 import pandas as pd
 import shap
 from xgboost import XGBClassifier
-from sklearn.model_selection import cross_val_score
+from sklearn.model_selection import StratifiedKFold
+
+from data_utils import READABLE_FEATURES, build_features
 
 
-def train_model(X_train, y_train):
-    model = XGBClassifier(
+def make_model():
+    return XGBClassifier(
         n_estimators=200,
         max_depth=4,
         learning_rate=0.05,
@@ -15,121 +17,73 @@ def train_model(X_train, y_train):
         eval_metric="logloss",
         random_state=42,
     )
-    model.fit(X_train, y_train)
-    explainer = shap.TreeExplainer(model)
 
-    # Cross-validated accuracy (5-fold) - more honest than train accuracy
-    cv_scores = cross_val_score(
-        XGBClassifier(
-            n_estimators=200, max_depth=4, learning_rate=0.05,
-            subsample=0.8, colsample_bytree=0.8,
-            eval_metric="logloss", random_state=42
-        ),
-        X_train, y_train, cv=5, scoring="accuracy"
+
+def train_model(X, y, n_splits=5):
+    """Fit the final model and score it honestly with stratified k-fold CV.
+
+    Returns the fitted model, out-of-fold survival probabilities (each passenger
+    predicted by a model that never saw them) and per-fold accuracy mean/std.
+    """
+    oof_probs = np.zeros(len(y))
+    fold_acc = []
+    folds = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=42)
+    for train_idx, val_idx in folds.split(X, y):
+        fold_model = make_model().fit(X.iloc[train_idx], y[train_idx])
+        oof_probs[val_idx] = fold_model.predict_proba(X.iloc[val_idx])[:, 1]
+        fold_acc.append(((oof_probs[val_idx] > 0.5) == y[val_idx]).mean())
+
+    model = make_model().fit(X, y)
+    return model, oof_probs, float(np.mean(fold_acc)), float(np.std(fold_acc))
+
+
+def make_explainer(model, X, n_background=100):
+    """SHAP explainer whose values are in probability space.
+
+    The base value plus all feature contributions sums exactly to the predicted
+    survival probability, so they can be drawn on a 0-100% axis.
+    """
+    background = shap.sample(X, n_background, random_state=42)
+    return shap.TreeExplainer(
+        model, background,
+        model_output="probability", feature_perturbation="interventional",
     )
-    cv_mean = cv_scores.mean()
-    cv_std = cv_scores.std()
-
-    return model, explainer, cv_mean, cv_std
 
 
-def predict_survival(model, explainer, sex, pclass, age, fare, sibsp, parch, embarked, feature_names):
-    family_size = sibsp + parch + 1
-    is_alone = 1 if family_size == 1 else 0
-    sex_enc = 1 if sex == "female" else 0
-    embarked_c = 1 if embarked == "C" else 0
-    embarked_q = 1 if embarked == "Q" else 0
-    embarked_s = 1 if embarked == "S" else 0
+def explain_passenger(model, explainer, passenger_df, top_n=6):
+    """Predict one passenger and break the prediction into SHAP contributions.
 
-    if sex == "female":
-        title = 2
-    elif age < 16:
-        title = 4
-    else:
-        title = 1
+    Returns (probability, base_rate, contributions) where contributions holds
+    the ``top_n`` largest features by readable name plus an "Other features"
+    bucket, so base_rate + sum(contributions) == probability.
+    """
+    X = build_features(passenger_df)
+    prob = float(model.predict_proba(X)[0, 1])
+    exp = explainer(X)
+    base = float(np.ravel(exp.base_values)[0])
 
-    fare_per_person = fare / max(family_size, 1)
-
-    row = {
-        "Pclass": pclass, "Sex": sex_enc, "Age": age,
-        "SibSp": sibsp, "Parch": parch, "Fare": fare,
-        "Embarked_C": embarked_c, "Embarked_Q": embarked_q, "Embarked_S": embarked_s,
-        "FamilySize": family_size, "IsAlone": is_alone,
-        "Title": title, "FarePerPerson": fare_per_person,
-    }
-
-    input_df = pd.DataFrame([row])[feature_names]
-    prob = model.predict_proba(input_df)[0][1]
-    shap_vals_raw = explainer(input_df).values[0]
-
-    readable = {
-        "Pclass": "Ticket class", "Sex": "Gender", "Age": "Age",
-        "SibSp": "Siblings/spouses", "Parch": "Parents/children", "Fare": "Fare paid",
-        "Embarked_C": "Embarked Cherbourg", "Embarked_Q": "Embarked Queenstown",
-        "Embarked_S": "Embarked Southampton", "FamilySize": "Family size",
-        "IsAlone": "Travelling alone", "Title": "Title (Mr/Mrs/Master)", "FarePerPerson": "Fare per person",
-    }
-
-    shap_dict = {readable.get(f, f): round(float(v), 4)
-                 for f, v in zip(feature_names, shap_vals_raw)}
-    shap_dict = dict(sorted(shap_dict.items(), key=lambda x: abs(x[1]), reverse=True)[:6])
-
-    return prob, shap_dict, input_df
+    contribs = pd.Series(exp.values[0], index=X.columns).rename(READABLE_FEATURES)
+    contribs = contribs.reindex(contribs.abs().sort_values(ascending=False).index)
+    top = contribs.iloc[:top_n].to_dict()
+    rest = contribs.iloc[top_n:].sum()
+    if abs(rest) > 1e-4:
+        top["Other features"] = float(rest)
+    return prob, base, top
 
 
-def get_shap_values(explainer, X):
-    return explainer(X)
+def global_importance(explainer, X):
+    """Mean |SHAP| per feature, in percentage points of survival probability."""
+    values = explainer(X).values
+    return pd.Series(np.abs(values).mean(axis=0), index=X.columns).rename(READABLE_FEATURES)
 
 
-def build_passenger_features(sex, pclass, age, fare, sibsp, parch, embarked, feature_names):
-    """Build a feature row dict for a single passenger."""
-    family_size = sibsp + parch + 1
-    sex_enc = 1 if sex == "female" else 0
-    title = 2 if sex == "female" else (4 if age < 16 else 1)
-    row = {
-        "Pclass": pclass, "Sex": sex_enc, "Age": age,
-        "SibSp": sibsp, "Parch": parch, "Fare": fare,
-        "Embarked_C": 1 if embarked == "C" else 0,
-        "Embarked_Q": 1 if embarked == "Q" else 0,
-        "Embarked_S": 1 if embarked == "S" else 0,
-        "FamilySize": family_size, "IsAlone": 1 if family_size == 1 else 0,
-        "Title": title, "FarePerPerson": fare / max(family_size, 1),
-    }
-    return pd.DataFrame([row])[feature_names]
-
-
-def run_survival_simulator(model, train_df, sex, pclass, age, feature_names, n=100):
-    """Sample similar passengers and return predicted survival probs."""
-    subset = train_df[
-        (train_df["Sex"] == sex) &
-        (train_df["Pclass"] == pclass) &
-        (train_df["Age"].between(max(1, age - 15), min(80, age + 15)))
-    ].copy()
-
-    if len(subset) < 5:
-        subset = train_df[(train_df["Sex"] == sex) & (train_df["Pclass"] == pclass)].copy()
-
+def run_survival_simulator(model, df, sex, pclass, age, n=100, age_window=15):
+    """Predicted survival for up to ``n`` real passengers similar to the user."""
+    subset = df[(df["Sex"] == sex) & (df["Pclass"] == pclass)]
+    similar = subset[subset["Age"].between(age - age_window, age + age_window)]
+    if len(similar) >= 5:
+        subset = similar
     if subset.empty:
         return None
-
-    sample = subset.sample(n=min(n, len(subset)), replace=True, random_state=42)
-    probs = []
-    for _, r in sample.iterrows():
-        age_v = r["Age"] if not pd.isna(r["Age"]) else age
-        fare_v = r["Fare"] if not pd.isna(r["Fare"]) else 30
-        emb = r.get("Embarked") or "S"
-        fs = int(r.get("SibSp", 0) or 0) + int(r.get("Parch", 0) or 0) + 1
-        sex_enc = 1 if sex == "female" else 0
-        title = 2 if sex == "female" else (4 if age_v < 16 else 1)
-        feat = {
-            "Pclass": pclass, "Sex": sex_enc, "Age": age_v,
-            "SibSp": int(r.get("SibSp", 0) or 0), "Parch": int(r.get("Parch", 0) or 0),
-            "Fare": fare_v, "Embarked_C": 1 if emb == "C" else 0,
-            "Embarked_Q": 1 if emb == "Q" else 0, "Embarked_S": 1 if emb == "S" else 0,
-            "FamilySize": fs, "IsAlone": 1 if fs == 1 else 0,
-            "Title": title, "FarePerPerson": fare_v / max(fs, 1),
-        }
-        row_df = pd.DataFrame([feat])[feature_names]
-        p = model.predict_proba(row_df)[0][1]
-        probs.append(p)
-    return probs
+    sample = subset.sample(n=min(n, len(subset)), random_state=42)
+    return model.predict_proba(build_features(sample))[:, 1]
