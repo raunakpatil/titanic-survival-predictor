@@ -16,10 +16,8 @@ env/
 # Streamlit
 .streamlit/secrets.toml
 
-# Data (download from Kaggle — see README)
-data/train.csv
-data/test.csv
-data/gender_submission.csv
+# Data (auto-downloaded on first run)
+data/
 
 # Jupyter
 .ipynb_checkpoints/
@@ -37,3 +35,6 @@ Thumbs.db
 # Model artifacts (regenerated on startup)
 *.pkl
 *.joblib
+
+# 3D model source (111 MB; see tools/convert_ship.py)
+*.3ds
